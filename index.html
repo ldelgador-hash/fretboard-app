@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fretboard Trainer</title>
+<style>
+:root{--bg:#120d0a;--card:rgba(255,255,255,.06);--ink:#f4eadc;--mute:#b3a291;--line:rgba(255,255,255,.14);--wood:#7a4a28;--acc:#ff8a4c;--ok:#3ddc97;--bad:#ff5d6c;--str:#e8dcc8;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#120d0a;--card:rgba(255,255,255,.06);--ink:#f4eadc;--mute:#b3a291;--line:rgba(255,255,255,.14);--wood:#7a4a28;--acc:#ff8a4c;--ok:#3ddc97;--bad:#ff5d6c;--str:#e8dcc8}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1100px 600px at 50% -10%,#2b1a10,var(--bg) 70%);background-attachment:fixed;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:32px;margin:4px 0 2px;letter-spacing:-.02em}
+.sub{color:var(--mute);font-size:14px;margin:0 0 14px}
+.card{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);border-radius:999px;padding:7px 14px;transition:transform .15s,box-shadow .2s,background .2s}
+button:hover{transform:translateY(-2px);background:rgba(255,255,255,.14)}
+button.on{background:linear-gradient(135deg,#ff9a5c,#e5561e);border-color:transparent;color:#fff;box-shadow:0 0 16px rgba(255,122,60,.55)}
+label.chk{font-size:14px;display:flex;gap:6px;align-items:center;cursor:pointer}
+#prompt{font-size:26px;font-weight:600;text-align:center;padding:12px 4px;min-height:60px}
+#prompt b{color:var(--acc);text-shadow:0 0 18px rgba(255,138,76,.7)}
+#msg{text-align:center;min-height:22px;font-size:15px;color:var(--mute)}
+#msg.ok{color:var(--ok)}#msg.bad{color:var(--bad)}
+.hide{display:none!important}
+body::before,body::after{content:"";position:fixed;z-index:-1;width:50vmax;height:50vmax;border-radius:50%;filter:blur(90px);opacity:.28;animation:drift 18s ease-in-out infinite alternate;pointer-events:none}
+body::before{background:#ff7a3c;top:-22vmax;left:-16vmax}
+body::after{background:#7b3cff;bottom:-26vmax;right:-16vmax;animation-delay:-9s}
+@keyframes drift{to{transform:translate(8vmax,6vmax) scale(1.15)}}
+@keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+.pop{animation:pop .35s cubic-bezier(.2,1.4,.4,1) both;transform-box:fill-box;transform-origin:center}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card{animation:rise .5s ease both}
+#msg.ok{text-shadow:0 0 12px var(--ok)}
+.gt{background:linear-gradient(90deg,#ffb27a,#ff6a3d 50%,#c77dff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{display:inline-block;animation:sway 3s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.scroll{overflow-x:auto}
+svg{display:block;min-width:640px;width:100%;height:auto}
+.cell{fill:transparent;cursor:pointer}
+.cell:hover{fill:rgba(255,138,76,.28)}
+.dot{pointer-events:none;font:600 13px system-ui,sans-serif;text-anchor:middle;dominant-baseline:central}
+#answers{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
+#answers button{min-width:56px;font-weight:600}
+.stats{display:flex;gap:18px;justify-content:center;font-size:15px;flex-wrap:wrap}
+.stats span b{font-size:28px;color:var(--acc);text-shadow:0 0 14px rgba(255,138,76,.5)}
+@keyframes pulse{0%,100%{r:12}50%{r:16}}
+.pulse{animation:pulse 1s infinite}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="logo">🎸</span> <span class="gt">Fretboard Trainer</span></h1>
+  <p class="sub">Learn every note on the guitar (standard tuning, frets 0–12). Click a spot to hear it.</p>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <span class="lbl">Mode</span>
+      <button id="m-find" class="on">Find the note</button>
+      <button id="m-name">Name the note</button>
+      <button id="m-scale">Pentatonic scales</button>
+      <span class="lbl" style="margin-left:10px">Names</span>
+      <button id="l-en" class="on">C D E</button>
+      <button id="l-es">Do Re Mi</button>
+    </div>
+    <div class="row" id="rowStrings" style="margin-bottom:10px">
+      <span class="lbl">Strings</span>
+      <span id="chips" class="row"></span>
+    </div>
+    <div class="row">
+      <label class="chk" id="lblSharps"><input type="checkbox" id="sharps"> Include sharps (♯)</label>
+      <label class="chk"><input type="checkbox" id="reveal"> Show all notes (study)</label>
+      <label class="chk"><input type="checkbox" id="sound" checked> Sound</label>
+    </div>
+  </div>
+
+  <div class="card hide" id="scaleCard">
+    <div class="row" style="margin-bottom:10px"><span class="lbl">Key</span><span id="roots" class="row"></span></div>
+    <div class="row">
+      <span class="lbl">Scale</span>
+      <button id="sc-min" class="on">Minor pentatonic</button>
+      <button id="sc-maj">Major pentatonic</button>
+      <span class="lbl" style="margin-left:10px">Labels</span>
+      <button id="lb-note" class="on">Notes</button>
+      <button id="lb-deg">Degrees</button>
+    </div>
+    <div class="row" style="margin-top:10px"><span class="lbl">Position</span><span id="poss" class="row"></span></div>
+    <p id="scaleInfo" class="sub" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="card">
+    <div id="prompt"></div>
+    <div class="scroll">
+      <svg id="board" viewBox="0 0 840 250" role="img" aria-label="Guitar fretboard"></svg>
+    </div>
+    <div id="answers"></div>
+    <div id="msg"></div>
+  </div>
+
+  <div class="card stats" id="stats">
+    <span>Correct <b id="s-ok">0</b></span>
+    <span>Tries <b id="s-all">0</b></span>
+    <span>Streak <b id="s-str">0</b></span>
+    <span>Best <b id="s-best">0</b></span>
+    <button id="reset">Reset</button>
+  </div>
+</div>
+
+<script>
+const NAMES={en:["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"],es:["Do","Do♯","Re","Re♯","Mi","Fa","Fa♯","Sol","Sol♯","La","La♯","Si"]};
+const NAT=[0,2,4,5,7,9,11];
+// index 0 = low E ... 5 = high E
+const OPEN=[4,9,2,7,11,4], FREQ=[82.41,110,146.83,196,246.94,329.63], SNAME=["E","A","D","G","B","E"];
+const FW=62,X0=60,YT=40,YG=36,FRETS=12;
+let mode="find",lang="en",active=new Set([0,1,2,3,4,5]),sharps=false,reveal=false,sound=true;
+let q=null,locked=false,failed=false,ok=0,all=0,streak=0,best=0,overlay=[];
+const $=id=>document.getElementById(id);
+const nm=n=>NAMES[lang][n];
+const noteAt=(s,f)=>(OPEN[s]+f)%12;
+const sy=s=>YT+(5-s)*YG;
+const cx=f=>f===0?32:X0+(f-1)*FW+FW/2;
+let actx=null;
+function beep(s,f){
+  if(!sound)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;
+    o.type="triangle";o.frequency.value=FREQ[s]*Math.pow(2,f/12);
+    g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.001,t+1.2);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+1.25);
+  }catch(e){}
+}
+function drawBoard(){
+  let h=`<defs><linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b341c"/><stop offset=".5" stop-color="#8b5a35"/><stop offset="1" stop-color="#4c2a16"/></linearGradient><pattern id="grain" width="10" height="5" patternUnits="userSpaceOnUse"><path d="M0 2.5H10" stroke="rgba(0,0,0,.18)" stroke-width=".7"/></pattern><radialGradient id="gRoot" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffc08a"/><stop offset="1" stop-color="#e5561e"/></radialGradient><radialGradient id="gNote" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#8fd3ff"/><stop offset="1" stop-color="#2a6fd6"/></radialGradient><radialGradient id="pearl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#b9b2a2"/></radialGradient><filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect x="${X0}" y="${YT-18}" width="${FRETS*FW}" height="${5*YG+36}" rx="6" fill="url(#wood)"/><rect x="${X0}" y="${YT-18}" width="${FRETS*FW}" height="${5*YG+36}" rx="6" fill="url(#grain)"/>`;
+  [3,5,7,9].forEach(f=>h+=`<circle cx="${cx(f)}" cy="${YT+2.5*YG}" r="8" fill="url(#pearl)" opacity=".85"/>`);
+  h+=`<circle cx="${cx(12)}" cy="${YT+1.5*YG}" r="8" fill="url(#pearl)" opacity=".85"/><circle cx="${cx(12)}" cy="${YT+3.5*YG}" r="8" fill="url(#pearl)" opacity=".85"/>`;
+  for(let f=1;f<=FRETS;f++)h+=`<line x1="${X0+f*FW}" x2="${X0+f*FW}" y1="${YT-18}" y2="${YT+5*YG+18}" stroke="#d6cdb8" stroke-width="2.6" opacity=".9"/>`;
+  h+=`<line x1="${X0}" x2="${X0}" y1="${YT-18}" y2="${YT+5*YG+18}" stroke="#f1e9d4" stroke-width="7"/>`;
+  for(let s=0;s<6;s++){
+    h+=`<line x1="${X0-6}" x2="${X0+FRETS*FW}" y1="${sy(s)}" y2="${sy(s)}" stroke="${s<3?"#d9a86a":"#e6ebf0"}" stroke-width="${1+(5-s)*0.4}" opacity="${active.has(s)||mode==="scale"?1:.3}"/>`;
+    h+=`<text x="8" y="${sy(s)-12}" font-size="11" fill="var(--mute)">${6-s}</text>`;
+  }
+  for(let f=0;f<=FRETS;f++)h+=`<text x="${cx(f)}" y="${YT+5*YG+38}" font-size="12" text-anchor="middle" fill="var(--mute)">${f}</text>`;
+  h+=`<text x="${X0+FRETS*FW/2}" y="248" font-size="11" text-anchor="middle" fill="var(--mute)">Fret (Traste)</text>`;
+  h+=`<g id="ov"></g>`;
+  for(let s=0;s<6;s++)for(let f=0;f<=FRETS;f++){
+    const w=f===0?50:FW;const x=f===0?7:X0+(f-1)*FW;
+    h+=`<rect class="cell" data-s="${s}" data-f="${f}" x="${x}" y="${sy(s)-YG/2}" width="${w}" height="${YG}"/>`;
+  }
+  $("board").innerHTML=h;
+  renderOv();
+}
+function renderOv(){
+  let h="";
+  if(mode==="scale"){
+    const S=SC[scaleType];
+    for(let s=0;s<6;s++)for(let f=0;f<=FRETS;f++){
+      const n=noteAt(s,f),k=S.i.indexOf((n-scaleRoot+12)%12);if(k<0)continue;
+      if(scalePos>=0&&!inBox(s,f,k)){h+=`<circle cx="${cx(f)}" cy="${sy(s)}" r="6" fill="${k===0?"var(--acc)":"#3b7ea1"}" opacity=".3"/>`;continue;}
+      h+=`<circle cx="${cx(f)}" cy="${sy(s)}" r="12.5" class="pop" fill="${k===0?"url(#gRoot)":"url(#gNote)"}" filter="url(#glow)"/><text class="dot" x="${cx(f)}" y="${sy(s)}" fill="#fff" font-size="${scaleLbl==="note"&&lang==="es"?10:12}">${scaleLbl==="note"?nm(n):S.d[k]}</text>`;
+    }
+    const g0=$("ov");if(g0)g0.innerHTML=h;return;
+  }
+  if(reveal)for(let s=0;s<6;s++)for(let f=0;f<=FRETS;f++){
+    const n=noteAt(s,f);if(!sharps&&!NAT.includes(n))continue;
+    h+=`<circle cx="${cx(f)}" cy="${sy(s)}" r="11" fill="rgba(18,13,10,.78)" stroke="rgba(255,255,255,.25)"/><text class="dot" x="${cx(f)}" y="${sy(s)}" fill="var(--ink)" font-size="${lang==="es"?10:12}">${nm(n)}</text>`;
+  }
+  overlay.forEach(o=>{
+    h+=`<circle class="${o.pulse?"pulse":""}" cx="${cx(o.f)}" cy="${sy(o.s)}" r="13" fill="${o.col}" filter="url(#glow)"/>`;
+    if(o.t)h+=`<text class="dot" x="${cx(o.f)}" y="${sy(o.s)}" fill="#fff" font-size="${lang==="es"?10:12}">${o.t}</text>`;
+  });
+  const g=$("ov");if(g)g.innerHTML=h;
+}
+function pool(){return NAT.concat(sharps?[1,3,6,8,10]:[]);}
+function newQ(){
+  overlay=[];failed=false;locked=false;$("msg").textContent="";$("msg").className="";
+  const ss=[...active];
+  let tries=0,nq;
+  do{
+    const s=ss[Math.floor(Math.random()*ss.length)];
+    if(mode==="find"){
+      const ns=pool();const n=ns[Math.floor(Math.random()*ns.length)];
+      nq={s,n};
+    }else{
+      const fr=[];for(let f=0;f<=FRETS;f++)if(pool().includes(noteAt(s,f)))fr.push(f);
+      const f=fr[Math.floor(Math.random()*fr.length)];
+      nq={s,f,n:noteAt(s,f)};
+    }
+  }while(q&&nq.s===q.s&&nq.n===q.n&&nq.f===q.f&&++tries<20);
+  q=nq;renderQ();
+}
+function renderQ(){
+  const sTxt=`string <b>${6-q.s}</b> (${SNAME[q.s]})`;
+  if(mode==="find"){
+    $("prompt").innerHTML=`Find <b>${nm(q.n)}</b> on ${sTxt}`;
+    $("answers").innerHTML="";
+  }else{
+    $("prompt").innerHTML=`What note is highlighted on ${sTxt}?`;
+    if(!overlay.length)overlay=[{s:q.s,f:q.f,col:"var(--acc)",pulse:true}];
+    $("answers").innerHTML=pool().sort((a,b)=>a-b).map(n=>`<button data-n="${n}">${nm(n)}</button>`).join("");
+  }
+  renderOv();
+}
+function score(good){
+  all++;
+  if(good){ok++;streak++;best=Math.max(best,streak);}else streak=0;
+  $("s-ok").textContent=ok;$("s-all").textContent=all;$("s-str").textContent=streak;$("s-best").textContent=best;
+}
+function good(){
+  const m=$("msg");m.textContent="Correct!";m.className="ok";
+  if(!failed)score(true);
+  locked=true;setTimeout(newQ,900);
+}
+function bad(txt){
+  const m=$("msg");m.textContent=txt;m.className="bad";
+  if(!failed){score(false);failed=true;}
+}
+$("board").addEventListener("click",e=>{
+  const c=e.target.closest(".cell");if(!c)return;
+  const s=+c.dataset.s,f=+c.dataset.f;
+  beep(s,f);
+  if(mode!=="find"||locked)return;
+  const n=noteAt(s,f);
+  if(s===q.s&&n===q.n){
+    overlay=[{s,f,col:"var(--ok)",t:nm(n)}];renderOv();good();
+  }else{
+    overlay=overlay.filter(o=>o.col!=="var(--bad)").slice(-3);
+    overlay.push({s,f,col:"var(--bad)",t:nm(n)});renderOv();
+    bad(s!==q.s?`That’s string ${6-s}. Look at string ${6-q.s}.`:`That was ${nm(n)}. Try again.`);
+  }
+});
+$("answers").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b||locked)return;
+  beep(q.s,q.f);
+  if(+b.dataset.n===q.n){
+    overlay=[{s:q.s,f:q.f,col:"var(--ok)",t:nm(q.n)}];renderOv();good();
+  }else bad(`Not ${nm(+b.dataset.n)}. Try again.`);
+});
+function setMode(m){
+  mode=m;overlay=[];q=null;
+  ["find","name","scale"].forEach(k=>$("m-"+k).classList.toggle("on",m===k));
+  const sc=m==="scale";
+  $("scaleCard").classList.toggle("hide",!sc);
+  ["rowStrings","lblSharps","stats","prompt","answers","msg"].forEach(i=>$(i).classList.toggle("hide",sc));
+  if(sc)renderScale();else{drawBoard();newQ();}
+}
+function setLang(l){lang=l;$("l-en").classList.toggle("on",l==="en");$("l-es").classList.toggle("on",l==="es");if(mode==="scale")renderScale();else renderQ();}
+$("m-find").onclick=()=>setMode("find");
+$("m-name").onclick=()=>setMode("name");
+$("l-en").onclick=()=>setLang("en");
+$("l-es").onclick=()=>setLang("es");
+$("sharps").onchange=e=>{sharps=e.target.checked;q=null;newQ();};
+$("reveal").onchange=e=>{reveal=e.target.checked;renderOv();};
+$("sound").onchange=e=>{sound=e.target.checked;};
+$("reset").onclick=()=>{ok=all=streak=best=0;score(true);ok=all=streak=0;["s-ok","s-all","s-str","s-best"].forEach(i=>$(i).textContent=0);newQ();};
+function drawChips(){
+  $("chips").innerHTML=[5,4,3,2,1,0].map(s=>`<button data-s="${s}" class="${active.has(s)?"on":""}">${6-s} · ${SNAME[s]}</button>`).join("");
+}
+$("chips").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const s=+b.dataset.s;
+  if(active.has(s)){if(active.size>1)active.delete(s);}else active.add(s);
+  drawChips();drawBoard();q=null;newQ();
+});
+const SC={min:{i:[0,3,5,7,10],d:["1","♭3","4","5","♭7"],n:"minor pentatonic",rel:3,relN:"major"},maj:{i:[0,2,4,7,9],d:["1","2","3","5","6"],n:"major pentatonic",rel:9,relN:"minor"}};
+let scaleRoot=9,scaleType="min",scaleLbl="note";
+function renderScale(){
+  $("roots").innerHTML=NAMES[lang].map((n,i)=>`<button data-r="${i}" class="${i===scaleRoot?"on":""}">${n}</button>`).join("");
+  $("poss").innerHTML=["All",1,2,3,4,5].map((p,i)=>`<button data-p="${i-1}" class="${i-1===scalePos?"on":""}">${p}</button>`).join("");
+  $("sc-min").classList.toggle("on",scaleType==="min");
+  $("sc-maj").classList.toggle("on",scaleType==="maj");
+  $("lb-note").classList.toggle("on",scaleLbl==="note");
+  $("lb-deg").classList.toggle("on",scaleLbl==="deg");
+  const S=SC[scaleType];
+  $("scaleInfo").innerHTML=`<b>${nm(scaleRoot)} ${S.n}</b>: ${S.i.map(x=>nm((scaleRoot+x)%12)).join(" – ")}. Orange = root. Same notes as ${nm((scaleRoot+S.rel)%12)} ${S.relN} pentatonic.`+posInfo();
+  drawBoard();
+}
+let scalePos=-1;
+const ABS=[0,5,10,15,19,24];
+function inBox(s,f,k){const D=5*Math.floor((ABS[s]+f+4-scaleRoot)/12)+k;return (((D-2*s-scalePos)%5)+5)%5<2;}
+function posInfo(){
+  if(scalePos<0)return " Pick a position to see one box at a time.";
+  const S=SC[scaleType],fr=new Set();
+  for(let s=0;s<6;s++)for(let f=0;f<=FRETS;f++){const k=S.i.indexOf((noteAt(s,f)-scaleRoot+12)%12);if(k>=0&&inBox(s,f,k))fr.add(f);}
+  const a=[...fr].sort((x,y)=>x-y),cl=[];
+  a.forEach(f=>{const c=cl[cl.length-1];if(c&&f-c[1]<=4)c[1]=f;else cl.push([f,f]);});
+  return ` <b>Position ${scalePos+1}</b>: frets ${cl.map(c=>c[0]===c[1]?c[0]:c[0]+"–"+c[1]).join(" and ")}. Position 1 starts on the root of the low E string; each next position starts on the next scale note.`;
+}
+$("poss").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;scalePos=+b.dataset.p;renderScale();});
+$("m-scale").onclick=()=>setMode("scale");
+$("roots").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;scaleRoot=+b.dataset.r;renderScale();});
+$("sc-min").onclick=()=>{scaleType="min";renderScale();};
+$("sc-maj").onclick=()=>{scaleType="maj";renderScale();};
+$("lb-note").onclick=()=>{scaleLbl="note";renderScale();};
+$("lb-deg").onclick=()=>{scaleLbl="deg";renderScale();};
+drawChips();drawBoard();newQ();
+</script>
+</body>
+</html>
